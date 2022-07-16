@@ -117,8 +117,7 @@ def build_graph(top_k):
         loss = tf.reduce_mean(tf.nn.sparse_softmax_cross_entropy_with_logits(logits=logits, labels=labels))
         accuracy = tf.reduce_mean(tf.cast(tf.equal(tf.argmax(logits, 1), labels), tf.float32))
 
-        update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
-        if update_ops:
+        if update_ops := tf.get_collection(tf.GraphKeys.UPDATE_OPS):
             updates = tf.group(*update_ops)
             loss = control_flow_ops.with_dependencies([updates], loss)
 
@@ -163,16 +162,13 @@ def train():
         coord = tf.train.Coordinator()
         threads = tf.train.start_queue_runners(sess=sess, coord=coord)
 
-        train_writer = tf.summary.FileWriter(FLAGS.log_dir + '/train', sess.graph)
-        test_writer = tf.summary.FileWriter(FLAGS.log_dir + '/val')
-        start_step = 0
+        train_writer = tf.summary.FileWriter(f'{FLAGS.log_dir}/train', sess.graph)
+        test_writer = tf.summary.FileWriter(f'{FLAGS.log_dir}/val')
         if FLAGS.restore:
-            ckpt = tf.train.latest_checkpoint(FLAGS.checkpoint_dir)
-            if ckpt:
+            if ckpt := tf.train.latest_checkpoint(FLAGS.checkpoint_dir):
                 saver.restore(sess, ckpt)
                 print("restore from the checkpoint {0}".format(ckpt))
-                start_step += int(ckpt.split('-')[-1])
-
+                start_step = 0 + int(ckpt.split('-')[-1])
         logger.info(':::Training Start:::')
         try:
             i = 0
@@ -237,8 +233,7 @@ def validation():
         coord = tf.train.Coordinator()
         threads = tf.train.start_queue_runners(sess=sess, coord=coord)
 
-        ckpt = tf.train.latest_checkpoint(FLAGS.checkpoint_dir)
-        if ckpt:
+        if ckpt := tf.train.latest_checkpoint(FLAGS.checkpoint_dir):
             saver.restore(sess, ckpt)
             print("restore from the checkpoint {0}".format(ckpt))
 
@@ -291,8 +286,7 @@ def inference(image):
         # Pass a shadow label 0. This label will not affect the computation graph.
         graph = build_graph(top_k=3)
         saver = tf.train.Saver()
-        ckpt = tf.train.latest_checkpoint(FLAGS.checkpoint_dir)
-        if ckpt:
+        if ckpt := tf.train.latest_checkpoint(FLAGS.checkpoint_dir):
             saver.restore(sess, ckpt)
         predict_val, predict_index = sess.run([graph['predicted_val_top_k'], graph['predicted_index_top_k']],
                                               feed_dict={graph['images']: temp_image,
